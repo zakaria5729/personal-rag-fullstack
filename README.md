@@ -97,3 +97,73 @@ npm start
 ```
 
 Open `http://localhost:3000`. The UI calls the backend URL set in `js/config.js` (`BASE_URL`, default `http://localhost:8080`) — change it there if your backend runs elsewhere.
+
+## 8. Use it
+
+### Backend API (`http://localhost:8080/knowledge/*`)
+
+Ingest text:
+
+```bash
+curl -X POST localhost:8080/knowledge/create \
+  -H 'Content-Type: application/json' \
+  -d '{"content":"RAG stands for Retrieval-Augmented Generation.","type":"TEXT"}'
+```
+
+Ingest a web page (the backend scrapes it):
+
+```bash
+curl -X POST localhost:8080/knowledge/create \
+  -H 'Content-Type: application/json' \
+  -d '{"content":"https://example.com/article","type":"URL"}'
+```
+
+Ingest a PDF:
+
+```bash
+curl -X POST localhost:8080/knowledge/create/pdf \
+  -F pdf_file=@document.pdf
+```
+
+Ask (streams the answer as SSE):
+
+```bash
+curl -N -X POST localhost:8080/knowledge/ask \
+  -H 'Content-Type: application/json' \
+  -d '{"query":"What does RAG stand for?"}'
+```
+
+Manage knowledge (`id` is the numeric knowledge id, `hash_id` comes from create responses):
+
+```bash
+curl -X PUT 'localhost:8080/knowledge/update?id=1' \
+  -H 'Content-Type: application/json' \
+  -d '{"content":"Updated content."}'
+
+curl 'localhost:8080/knowledge/id?id=1'
+curl 'localhost:8080/knowledge/all?size=20'
+curl 'localhost:8080/knowledge/vector?hash_id=<hash_id>'
+curl -X DELETE 'localhost:8080/knowledge/delete?id=1'
+```
+
+### Frontend UI (`http://localhost:3000`)
+
+Ask a question:
+
+1.  Type a question in the input box, e.g. `What does RAG stand for?`, and hit send.
+2.  Watch the status chips (`analyzing-query` → `retrieving-info` → `reranking-info` → `generating-response`) while the answer streams in.
+3.  Use the stop button to cancel a running answer, `New Query` to start a fresh session, or the mic button to dictate instead of typing. Answers can be read aloud.
+4.  Past sessions appear in the sidebar; you can rename (update query) or delete them.
+
+Ingest knowledge — click `Ingest Knowledge` (sidebar) and pick a tab:
+
+- TEXT tab: paste plain text, e.g. `RAG stands for Retrieval-Augmented Generation.`, then `Ingest Knowledge`.
+- URL tab: enter a page URL, e.g. `https://example.com/article` — the backend scrapes and ingests it.
+- PDF tab: click or drag-and-drop a `.pdf` file, then ingest.
+
+Manage knowledge — open the `Knowledge Management` view:
+
+- Browse ingested items (`Load More` pages through history).
+- Click an item to see its full content (copy button included).
+- Open `Knowledge Vector Content Chunks` to inspect the stored embedding chunks.
+- Update an item's text or delete items you no longer need.
