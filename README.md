@@ -4,31 +4,92 @@ Personal Retrieval-Augmented Generation app: knowledge ingestion (text / URL / P
 
 ## Layout
 
-- `personal-rag-backend/` – Spring Boot API (Java 21, Maven). See its README. Serves `http://localhost:8080`.
-- `personal-rag-frontend/` – static chat UI. See its README. Served via `npm start` on `http://localhost:3000`, talks to the backend.
+- `personal-rag-backend/` – Spring Boot API (Java 21, Maven). Serves `http://localhost:8080`. See its README for module details.
+- `personal-rag-frontend/` – static chat UI (no build step). Served via `npm start` on `http://localhost:3000`, talks to the backend.
 
-## Quickstart
+## 1. Prerequisites (install on your machine)
 
-1.  Start dependencies: PostgreSQL with `pgvector` (`static_rag` on `localhost:5432`) and Ollama (`localhost:11434`).
-2.  Backend:
-    ```bash
-    cd personal-rag-backend
-    mvn -pl rag-module,app-module -am compile
-    mvn -pl app-module -am spring-boot:run
-    ```
-3.  Frontend (new terminal):
-    ```bash
-    cd personal-rag-frontend
-    npm start
-    ```
-4.  Open `http://localhost:3000`.
+- Java 21 and Maven 3.9+
+- Node.js 18+ (for serving the frontend)
+- PostgreSQL 16+ with the `pgvector` extension
+- Ollama (serving on `http://localhost:11434`)
+- Internet access (frontend loads `marked`, `highlight.js` and Google Fonts from CDN)
 
-## External model files
+## 2. Clone
 
-The backend loads ML models from disk (full details in `personal-rag-backend/README.md`):
+```bash
+git clone https://github.com/zakaria5729/personal-rag-fullstack.git
+cd personal-rag-fullstack
+```
 
-- Reranker ONNX export: `model.onnx` + `model.onnx_data` + `tokenizer.json` under the `reranker.models-base-path` directory. Missing files degrade to keyword scoring instead of failing.
-- Sentence model: `opennlp-en-ud-ewt-sentence-1.3-2.5.4.bin` at `sentence-split.model-path` — download from https://opennlp.apache.org/models.html. Required at startup.
-- Ollama: `ollama pull phi4-mini:latest` and `ollama pull nomic-embed-text:137m-v1.5-fp16`.
+## 3. Database
 
-The frontend needs no local files; it loads `marked`, `highlight.js` (CDN) and Google Fonts, so it requires internet access.
+Create the database (tables are migrated automatically by Flyway on startup):
+
+```bash
+createdb static_rag
+```
+
+Default connection (see `personal-rag-backend/app-module/src/main/resources/application-app.yml`):
+host `localhost:5432`, db `static_rag`, user `postgres`, password `password`.
+To use your own credentials, export env vars before starting the backend:
+
+```bash
+export SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/static_rag
+export SPRING_DATASOURCE_USERNAME=<your-user>
+export SPRING_DATASOURCE_PASSWORD=<your-password>
+```
+
+## 4. Ollama models
+
+```bash
+ollama pull phi4-mini:latest
+ollama pull nomic-embed-text:137m-v1.5-fp16
+```
+
+## 5. External model files (download + placement)
+
+The backend loads two ML models from disk. Download them, then place them at the configured paths
+(configured in `personal-rag-backend/rag-module/src/main/resources/application-rag.yml`):
+
+| File(s) | Place at | Get it from |
+|---------|----------|-------------|
+| `opennlp-en-ud-ewt-sentence-1.3-2.5.4.bin` | `<sentence-split.model-path>` (exact file path) | https://opennlp.apache.org/models.html |
+| `model.onnx` + `model.onnx_data` + `tokenizer.json` | `<reranker.models-base-path>/` (all three side by side) | any compatible ONNX cross-encoder reranker export |
+
+```bash
+mkdir -p /path/to/sentence-split /path/to/reranker
+cp opennlp-en-ud-ewt-sentence-1.3-2.5.4.bin /path/to/sentence-split/
+cp model.onnx model.onnx_data tokenizer.json /path/to/reranker/
+```
+
+Then point the app at your paths (no code change needed — env vars override the yml):
+
+```bash
+export SENTENCE_SPLIT_MODEL_PATH=/path/to/sentence-split/opennlp-en-ud-ewt-sentence-1.3-2.5.4.bin
+export RERANKER_MODELS_BASE_PATH=/path/to/reranker
+```
+
+Notes:
+
+- The sentence model is required — the app fails fast at startup if it is missing.
+- The reranker is optional — without it the app still starts but falls back to keyword scoring, so answer quality drops.
+
+## 6. Run the backend
+
+```bash
+cd personal-rag-backend
+mvn -pl rag-module,app-module -am compile
+mvn -pl app-module -am spring-boot:run
+```
+
+API base: `http://localhost:8080/knowledge/*`. Logs: `~/logfiles/static-rag/`.
+
+## 7. Run the frontend (new terminal)
+
+```bash
+cd personal-rag-frontend
+npm start
+```
+
+Open `http://localhost:3000`. The UI calls the backend URL set in `js/config.js` (`BASE_URL`, default `http://localhost:8080`) — change it there if your backend runs elsewhere.
