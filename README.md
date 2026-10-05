@@ -3,7 +3,7 @@
 Personal Retrieval-Augmented Generation app: knowledge ingestion (text / URL / PDF) plus streaming chat over your own data.
 
 > This implementation is built entirely on free and open-source models (Ollama language/embedding models,
-> Apache OpenNLP, and an ONNX reranker — no paid APIs). I wrote all the code by hand, without AI assistance,
+> Apache OpenNLP, and an ONNX reranker — no paid APIs). I wrote all the code by hand, without any AI agent,
 > in order to learn the RAG system properly end to end.
 
 ## Layout
