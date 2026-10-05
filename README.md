@@ -2,6 +2,10 @@
 
 Personal Retrieval-Augmented Generation app: knowledge ingestion (text / URL / PDF) plus streaming chat over your own data.
 
+> This implementation is built entirely on free and open-source models (Ollama language/embedding models,
+> Apache OpenNLP, and an ONNX reranker — no paid APIs). I wrote all the code by hand, without AI assistance,
+> in order to learn the RAG system properly end to end.
+
 ## Layout
 
 - `personal-rag-backend/` – Spring Boot API (Java 21, Maven). Serves `http://localhost:8080`. See its README for module details.
